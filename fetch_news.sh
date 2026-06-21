@@ -1,15 +1,79 @@
 #!/bin/bash
 # 每日财经资讯报告生成脚本
-# 使用方法: ./fetch_news.sh
+# 使用方法: ./fetch_news.sh [--send-email]
 
 REPORT_DIR="/Users/chenjiahui/Desktop/vb/daily_news/daily_reports"
 DATE=$(date +"%Y-%m-%d")
 REPORT_FILE="$REPORT_DIR/${DATE}.md"
 
+# 邮件配置
+EMAIL_FROM="249131303@qq.com"
+EMAIL_TO="249131303@qq.com"
+EMAIL_SMTP="smtp.qq.com"
+EMAIL_PORT="587"
+EMAIL_PASS="tptknjsmptdgbihe"
+
 mkdir -p "$REPORT_DIR"
 
 log_info() {
     echo "[INFO] $1" >&2
+}
+
+# 发送邮件
+send_email() {
+    log_info "发送邮件..."
+
+    REPORT_FILE="$REPORT_FILE"
+    EMAIL_FROM="$EMAIL_FROM"
+    EMAIL_TO="$EMAIL_TO"
+    EMAIL_SMTP="$EMAIL_SMTP"
+    EMAIL_PORT="$EMAIL_PORT"
+    EMAIL_PASS="$EMAIL_PASS"
+    DATE="$DATE"
+
+    python3 - "$REPORT_FILE" "$EMAIL_FROM" "$EMAIL_TO" "$EMAIL_SMTP" "$EMAIL_PORT" "$EMAIL_PASS" "$DATE" << 'ENDPYTHON'
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import sys
+
+REPORT_FILE = sys.argv[1]
+EMAIL_FROM = sys.argv[2]
+EMAIL_TO = sys.argv[3]
+EMAIL_SMTP = sys.argv[4]
+EMAIL_PORT = int(sys.argv[5])
+EMAIL_PASS = sys.argv[6]
+DATE = sys.argv[7]
+
+try:
+    with open(REPORT_FILE, 'r', encoding='utf-8') as f:
+        content = f.read()
+except:
+    print("[ERROR] 无法读取报告文件")
+    sys.exit(1)
+
+msg = MIMEMultipart('alternative')
+msg['Subject'] = '📈 每日财经资讯 - ' + DATE
+msg['From'] = EMAIL_FROM
+msg['To'] = EMAIL_TO
+
+plain_text = content.replace('# ', '').replace('## ', '\n=== ').replace('**', '').replace('---', '').replace('  * ', '\n• ')
+
+html_content = '<html><head><meta charset="utf-8"></head><body style="font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;"><h1>📈 每日财经资讯报告</h1><p>日期: ' + DATE + '</p><hr><pre>' + content + '</pre><hr><p style="color: #999; font-size: 12px;">报告生成于 ' + DATE + '</p></body></html>'
+
+msg.attach(MIMEText(plain_text, 'plain', 'utf-8'))
+msg.attach(MIMEText(html_content, 'html', 'utf-8'))
+
+try:
+    server = smtplib.SMTP(EMAIL_SMTP, EMAIL_PORT)
+    server.starttls()
+    server.login(EMAIL_FROM, EMAIL_PASS)
+    server.send_message(msg)
+    server.quit()
+    print("[INFO] 邮件发送成功！")
+except Exception as e:
+    print("[ERROR] 邮件发送失败: " + str(e))
+ENDPYTHON
 }
 
 # 抓取新浪财经
@@ -103,12 +167,6 @@ generate_report() {
         echo ""
         echo "---"
         echo ""
-        echo "## 📰 新浪财经 - 外汇贵金属"
-        echo ""
-        fetch_sina "新浪财经-外汇" 2519 5
-        echo ""
-        echo "---"
-        echo ""
         echo "## 📰 36氪 - 科技创业"
         echo ""
         fetch_36kr
@@ -135,6 +193,12 @@ main() {
     echo ""
 
     generate_report
+
+    # 检查是否发送邮件
+    if [ "$1" == "--send-email" ] || [ "$1" == "-s" ]; then
+        echo ""
+        send_email
+    fi
 
     echo ""
     echo "[INFO] 完成！报告: $REPORT_FILE"
