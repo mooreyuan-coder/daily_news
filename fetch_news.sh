@@ -115,6 +115,12 @@ generate_report() {
         echo ""
         echo "---"
         echo ""
+        echo "## 📰 新浪财经 - 行业研究"
+        echo ""
+        fetch_sina "新浪财经-行业研究" 2509 10
+        echo ""
+        echo "---"
+        echo ""
         echo "*报告生成于 $(date +"%Y-%m-%d %H:%M:%S")*"
 
     } > "$REPORT_FILE"
