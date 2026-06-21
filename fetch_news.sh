@@ -55,6 +55,18 @@ except:
 " 2>/dev/null
 }
 
+# 抓取36氪
+fetch_36kr() {
+    log_info "抓取: 36氪-科技创业"
+    curl -s --max-time 15 \
+        "https://36kr.com/feed" \
+        | grep -o '<title>[^<]*</title>' \
+        | sed 's/<title>//g; s/<\/title>//g' \
+        | tail -n +2 \
+        | head -10 \
+        | while read line; do echo "  * $line"; done
+}
+
 # 生成报告
 generate_report() {
     log_info "开始生成每日财经报告..."
@@ -94,6 +106,12 @@ generate_report() {
         echo "## 📰 新浪财经 - 外汇贵金属"
         echo ""
         fetch_sina "新浪财经-外汇" 2519 5
+        echo ""
+        echo "---"
+        echo ""
+        echo "## 📰 36氪 - 科技创业"
+        echo ""
+        fetch_36kr
         echo ""
         echo "---"
         echo ""
